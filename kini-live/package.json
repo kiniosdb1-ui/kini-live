@@ -1,0 +1,16 @@
+{
+  "name": "kini-outsourcing-live",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n website,api -c cyan,green \"npm --prefix client run dev\" \"npm --prefix server run dev\"",
+    "build": "npm --prefix client run build",
+    "start": "npm --prefix server run start",
+    "install:all": "npm install && npm --prefix client install && npm --prefix server install",
+    "qa:visual": "node scripts/visual-qa.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "playwright-core": "^1.60.0"
+  }
+}
