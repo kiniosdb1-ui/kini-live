@@ -9,8 +9,12 @@
     "install:all": "npm install && npm --prefix client install && npm --prefix server install",
     "qa:visual": "node scripts/visual-qa.mjs"
   },
-  "devDependencies": {
-    "concurrently": "^9.2.1",
-    "playwright-core": "^1.60.0"
-  }
+  "dependencies": {
+  "@vitejs/plugin-react": "^5.0.4",
+  "vite": "^7.3.2",
+  "framer-motion": "...",
+  "lucide-react": "...",
+  "react": "...",
+  "react-dom": "..."
+}
 }
