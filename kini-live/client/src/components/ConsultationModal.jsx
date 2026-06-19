@@ -33,7 +33,7 @@ function ConsultationModal({ isOpen, onClose, initialService }) {
       setStep("details");
       setOtp("");
       setError("");
-      setDevOtp("");
+      
       document.body.classList.add("modal-open");
     }
     return () => document.body.classList.remove("modal-open");
