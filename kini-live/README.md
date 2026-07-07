@@ -60,14 +60,6 @@ npm run admin:generate
 
 Store the generated password in a password manager. Put only the generated hash in `ADMIN_PASSWORD_HASH`. Also configure `ADMIN_EMAIL` and a long random `ADMIN_SESSION_SECRET`.
 
-The admin login includes a forgot-password flow. Reset links:
-
-- Are sent only to the configured `ADMIN_EMAIL`
-- Use one-time random tokens stored only as SHA-256 hashes
-- Expire after 15 minutes through a MongoDB TTL index
-- Invalidate every active admin session after a successful reset
-- Store the new scrypt password hash in MongoDB while retaining `ADMIN_PASSWORD_HASH` as the initial fallback
-
 Admin sessions:
 
 - Use random tokens stored only as SHA-256 hashes in MongoDB
@@ -89,7 +81,6 @@ Set these secrets before deploying:
 - `ADMIN_EMAIL`
 - `ADMIN_PASSWORD_HASH`
 - `ADMIN_SESSION_SECRET`
-- `ADMIN_RESET_URL` (for example `https://example.com/admin`)
 - `SMTP_HOST`
 - `SMTP_PORT`
 - `SMTP_SECURE`
@@ -99,6 +90,8 @@ Set these secrets before deploying:
 - `CONSULTANT_EMAIL`
 - `NODE_ENV=production`
 - `TRUST_PROXY=true` when deployed behind a trusted reverse proxy
+
+Use `server/.env.production.example` as the production checklist. In production the API refuses to start if localhost origins, localhost MongoDB, Cloudflare test keys, weak secrets, or dev bypass flags are configured.
 
 Build the frontend and start the API:
 
@@ -134,3 +127,88 @@ The included rate limiter uses process memory, which is suitable for a single AP
 4. Configure environment secrets in the hosting platform, never in Git.
 5. Enable HTTPS and test the complete OTP flow on the live domain.
 6. Add a privacy policy and define how long consultation records are retained.
+
+## Render Deployment
+
+This repo includes `render.yaml` for a two-service Render deploy:
+
+- `kini-outsourcing-api`: Node/Express backend from `server`
+- `kini-outsourcing-web`: Vite static frontend from `client`
+
+Render supports Node web services with custom build/start commands, static sites with a publish directory, and monorepo root directories. For this project the backend root is `server`, the frontend root is `client`, and the frontend rewrite sends `/*` to `index.html` so `/admin` works on refresh.
+
+### Backend Service Values
+
+If creating services manually instead of Blueprint:
+
+- Service type: `Web Service`
+- Root directory: `server`
+- Runtime: `Node`
+- Build command: `npm install`
+- Start command: `npm start`
+- Health check path: `/api/health`
+
+Production backend env vars:
+
+```env
+NODE_ENV=production
+TRUST_PROXY=true
+CLIENT_ORIGINS=https://YOUR_FRONTEND_DOMAIN
+MONGODB_URI=mongodb+srv://...
+TURNSTILE_SECRET_KEY=your-cloudflare-turnstile-secret
+OTP_PEPPER=long-random-secret
+ADMIN_EMAIL=owner@example.com
+ADMIN_PASSWORD_HASH=generated-scrypt-hash
+ADMIN_SESSION_SECRET=long-random-secret
+ADMIN_RESET_URL=https://YOUR_FRONTEND_DOMAIN/admin
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-smtp-user
+SMTP_PASS=your-smtp-key
+MAIL_FROM=KINi Outsourcing Services <verified-sender@example.com>
+CONSULTANT_EMAIL=kinioutsourcingservices@gmail.com
+```
+
+Never enable these in production:
+
+```env
+ENABLE_DEV_OTP=true
+ENABLE_DEV_CAPTCHA_BYPASS=true
+DISABLE_DEV_SMTP=true
+ENABLE_DEV_ADMIN_RESET=true
+```
+
+### Frontend Static Site Values
+
+Manual Render setup:
+
+- Service type: `Static Site`
+- Root directory: `client`
+- Build command: `npm install && npm run build`
+- Publish directory: `dist`
+- Rewrite rule: `/*` -> `/index.html`
+
+Frontend env vars:
+
+```env
+VITE_API_URL=https://YOUR_BACKEND_DOMAIN
+VITE_TURNSTILE_SITE_KEY=your-cloudflare-turnstile-site-key
+```
+
+### Domain Setup
+
+For a production-quality admin login, use custom domains under the same registered domain, for example:
+
+- Frontend: `https://www.kinioutsourcing.com`
+- Backend API: `https://api.kinioutsourcing.com`
+
+Then set:
+
+```env
+CLIENT_ORIGINS=https://www.kinioutsourcing.com
+VITE_API_URL=https://api.kinioutsourcing.com
+ADMIN_RESET_URL=https://www.kinioutsourcing.com/admin
+```
+
+Also add both production domains to Cloudflare Turnstile. If you test only with separate `onrender.com` subdomains, public consultation requests should work, but admin cookie behavior can be stricter across separate hosted subdomains. Custom domains are the clean production path.
