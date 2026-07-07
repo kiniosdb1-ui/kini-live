@@ -37,11 +37,13 @@ export const config = {
     requireProductionValue("ADMIN_SESSION_SECRET", process.env.ADMIN_SESSION_SECRET) ||
     "local-development-only-admin-session-secret",
   adminResetUrl:
-    requireProductionValue("ADMIN_RESET_URL", process.env.ADMIN_RESET_URL) ||
-    "http://localhost:5173/admin",
+    process.env.ADMIN_RESET_URL || "http://localhost:5173/admin",
   enableDevAdminReset:
-    !isProduction && process.env.ENABLE_DEV_ADMIN_RESET !== "false",
+    !isProduction && process.env.ENABLE_DEV_ADMIN_RESET === "true",
   enableDevOtp: !isProduction && process.env.ENABLE_DEV_OTP !== "false",
+  enableDevCaptchaBypass:
+    !isProduction && process.env.ENABLE_DEV_CAPTCHA_BYPASS === "true",
+  disableDevSmtp: !isProduction && process.env.DISABLE_DEV_SMTP === "true",
   smtp: {
     host: requireProductionValue("SMTP_HOST", process.env.SMTP_HOST) || "",
     port: Number(process.env.SMTP_PORT || 587),

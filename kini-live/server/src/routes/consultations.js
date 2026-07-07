@@ -70,7 +70,10 @@ router.post("/request-otp", otpLimiter, async (req, res, next) => {
       return res.status(202).json({ message: "If the address is valid, a code will be sent." });
     }
 
-    const captchaValid = await verifyTurnstile(parsed.data.captchaToken, req.ip);
+    const captchaValid =
+      config.enableDevCaptchaBypass && parsed.data.captchaToken === "postman-test"
+        ? true
+        : await verifyTurnstile(parsed.data.captchaToken, req.ip);
     if (!captchaValid) {
       return res.status(400).json({ message: "Human verification failed. Please retry." });
     }

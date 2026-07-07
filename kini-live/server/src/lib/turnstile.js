@@ -23,7 +23,8 @@ export async function verifyTurnstile(token, remoteIp) {
     });
     const result = await response.json();
     return Boolean(result.success);
-  } catch {
+  } catch(err) {
+    console.error("TURNSTILE ERROR:", err);
     return false;
   } finally {
     clearTimeout(timeout);
