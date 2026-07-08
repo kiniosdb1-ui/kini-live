@@ -87,7 +87,7 @@ export const faqs = [
   {
     question: "How do I securely request a consultation?",
     answer:
-      "Use the consultation form on this website. Your email is verified through a short-lived OTP and the form is protected by a CAPTCHA before the request is accepted.",
+      "Use the consultation form on this website. The form is protected by human verification before the request is accepted.",
   },
   {
     question: "What happens when a service is outside your direct scope?",

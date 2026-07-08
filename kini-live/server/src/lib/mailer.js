@@ -18,30 +18,6 @@ const transporter = hasSmtp
     })
   : null;
 
-export async function sendOtpEmail(email, otp) {
-  if (!transporter) {
-    if (config.isProduction) throw new Error("SMTP is not configured");
-    console.info(`[development] OTP for ${email}: ${otp}`);
-    return;
-  }
-
-  await transporter.sendMail({
-    from: config.smtp.from,
-    to: email,
-    subject: "Your KINi consultation verification code",
-    text: `Your KINi Outsourcing Services verification code is ${otp}. It expires in 10 minutes. Do not share this code.`,
-    html: `
-      <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:28px;color:#171714">
-        <h2 style="margin-bottom:10px">Verify your consultation request</h2>
-        <p>Your one-time verification code is:</p>
-        <p style="font-size:32px;font-weight:700;letter-spacing:8px;margin:24px 0">${otp}</p>
-        <p>This code expires in 10 minutes. Do not share it with anyone.</p>
-        <p style="color:#666">KINi Outsourcing Services</p>
-      </div>
-    `,
-  });
-}
-
 export async function notifyConsultant(consultation) {
   if (!transporter) return;
 

@@ -9,7 +9,7 @@ Production-minded React JavaScript website and secure consultation API for KINi 
 - Database: MongoDB with Mongoose
 - Email: SMTP through Nodemailer
 - Bot protection: Cloudflare Turnstile
-- Consultation verification: short-lived email OTP
+- Consultation protection: Cloudflare Turnstile human verification
 
 ## Local Setup
 
@@ -38,7 +38,7 @@ npm run dev
 - API health: `http://localhost:5000/api/health`
 - Secure admin panel: `http://localhost:5173/admin`
 
-Development uses Cloudflare Turnstile test keys and can display the OTP in the consultation modal. Production never returns the OTP.
+Development uses Cloudflare Turnstile test keys. Production must use a live Turnstile widget and secret for the deployed domain.
 
 ## Secure Admin Panel
 
@@ -77,7 +77,6 @@ Set these secrets before deploying:
 - `MONGODB_URI`
 - `CLIENT_ORIGINS`
 - `TURNSTILE_SECRET_KEY`
-- `OTP_PEPPER`
 - `ADMIN_EMAIL`
 - `ADMIN_PASSWORD_HASH`
 - `ADMIN_SESSION_SECRET`
@@ -105,17 +104,15 @@ The Express server automatically serves `client/dist` when it exists.
 ## Security Decisions
 
 - Visitors do not create accounts or passwords.
-- Consultation submission requires server-validated Cloudflare Turnstile and an email OTP.
-- OTP values are HMAC-hashed, expire after 10 minutes, and are automatically removed using a MongoDB TTL index.
-- OTP verification is limited to five attempts.
-- OTP requests, consultation submissions, and all API traffic are rate-limited.
+- Consultation submission requires server-validated Cloudflare Turnstile.
+- Consultation submissions and all API traffic are rate-limited.
 - A honeypot field quietly absorbs basic automated form spam.
 - Request bodies and all form fields have strict size limits and schema validation.
 - CORS accepts only configured frontend origins.
 - HTTP security headers are enabled through Helmet.
 - Duplicate consultation requests from one email are blocked for five minutes.
 
-Email syntax checks cannot prove that an inbox exists. OTP verification is used because successful code entry proves the visitor can access that mailbox.
+Email syntax checks cannot prove that an inbox exists. Human verification is used to reduce automated spam before the request is accepted.
 
 The included rate limiter uses process memory, which is suitable for a single API instance. If the API is scaled across multiple instances, configure a shared Redis-backed rate-limit store so abuse limits remain consistent across every instance.
 
@@ -125,7 +122,7 @@ The included rate limiter uses process memory, which is suitable for a single AP
 2. Configure a transactional SMTP provider. Do not use a personal email password.
 3. Create MongoDB Atlas database credentials with only the permissions this application needs.
 4. Configure environment secrets in the hosting platform, never in Git.
-5. Enable HTTPS and test the complete OTP flow on the live domain.
+5. Enable HTTPS and test the complete consultation flow on the live domain.
 6. Add a privacy policy and define how long consultation records are retained.
 
 ## Render Deployment
@@ -156,7 +153,6 @@ TRUST_PROXY=true
 CLIENT_ORIGINS=https://YOUR_FRONTEND_DOMAIN
 MONGODB_URI=mongodb+srv://...
 TURNSTILE_SECRET_KEY=your-cloudflare-turnstile-secret
-OTP_PEPPER=long-random-secret
 ADMIN_EMAIL=owner@example.com
 ADMIN_PASSWORD_HASH=generated-scrypt-hash
 ADMIN_SESSION_SECRET=long-random-secret
@@ -173,7 +169,6 @@ CONSULTANT_EMAIL=kinioutsourcingservices@gmail.com
 Never enable these in production:
 
 ```env
-ENABLE_DEV_OTP=true
 ENABLE_DEV_CAPTCHA_BYPASS=true
 DISABLE_DEV_SMTP=true
 ENABLE_DEV_ADMIN_RESET=true

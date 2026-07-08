@@ -40,9 +40,6 @@ const turnstileSecret =
   requireProductionValue("TURNSTILE_SECRET_KEY", process.env.TURNSTILE_SECRET_KEY) ||
   "1x0000000000000000000000000000000AA";
 
-const otpPepper =
-  requireProductionSecret("OTP_PEPPER", process.env.OTP_PEPPER || "local-development-only-otp-pepper");
-
 const adminSessionSecret =
   requireProductionSecret(
     "ADMIN_SESSION_SECRET",
@@ -57,7 +54,6 @@ assertProduction(clientOrigins.every((origin) => origin.startsWith("https://")),
 assertProduction(!mongoUri.includes("127.0.0.1") && !mongoUri.includes("localhost"), "MONGODB_URI cannot point to localhost in production");
 assertProduction(!turnstileSecret.startsWith("1x000000"), "TURNSTILE_SECRET_KEY must be a live Cloudflare Turnstile secret in production");
 assertProduction(adminResetUrl.startsWith("https://"), "ADMIN_RESET_URL must use HTTPS in production");
-assertProduction(process.env.ENABLE_DEV_OTP !== "true", "ENABLE_DEV_OTP must not be true in production");
 assertProduction(process.env.ENABLE_DEV_CAPTCHA_BYPASS !== "true", "ENABLE_DEV_CAPTCHA_BYPASS must not be true in production");
 assertProduction(process.env.DISABLE_DEV_SMTP !== "true", "DISABLE_DEV_SMTP must not be true in production");
 assertProduction(process.env.ENABLE_DEV_ADMIN_RESET !== "true", "ENABLE_DEV_ADMIN_RESET must not be true in production");
@@ -69,7 +65,6 @@ export const config = {
   clientOrigins,
   trustProxy: process.env.TRUST_PROXY === "true",
   turnstileSecret,
-  otpPepper,
   adminEmail:
     requireProductionValue("ADMIN_EMAIL", process.env.ADMIN_EMAIL)?.trim().toLowerCase() ||
     "admin@localhost.invalid",
@@ -79,7 +74,6 @@ export const config = {
   adminResetUrl,
   enableDevAdminReset:
     !isProduction && process.env.ENABLE_DEV_ADMIN_RESET === "true",
-  enableDevOtp: !isProduction && process.env.ENABLE_DEV_OTP !== "false",
   enableDevCaptchaBypass:
     !isProduction && process.env.ENABLE_DEV_CAPTCHA_BYPASS === "true",
   disableDevSmtp: !isProduction && process.env.DISABLE_DEV_SMTP === "true",

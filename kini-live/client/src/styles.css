@@ -543,7 +543,6 @@ p {
 .about-copy h2,
 .contact-section h2,
 .modal-heading h2,
-.otp-panel h2,
 .success-panel h2 {
   margin-bottom: 0;
   font-family: "Cormorant Garamond", serif;
@@ -845,27 +844,12 @@ p {
 }
 
 .section-intro {
-  max-width: 100%;
+  max-width: 720px;
+  margin-bottom: 46px;
 }
 
 .section-intro h2 {
   margin-bottom: 18px;
-  font-size: clamp(3rem, 5vw, 4.5rem);
-  line-height: 1.05;
-  max-width: none;
-
-}
-@media (max-width: 768px) {
-  .section-intro h2 {
-    font-size: clamp(2.3rem, 9vw, 3.2rem);
-    line-height: 1.1;
-  }
-}
-.developer-credit {
-  margin-top: 10px;
-  font-size: 0.85rem;
-  opacity: 0.7;
-  letter-spacing: 0.05em;
 }
 
 .section-intro > p:last-child {
@@ -1123,13 +1107,11 @@ p {
 }
 
 .modal-heading h2,
-.otp-panel h2,
 .success-panel h2 {
   font-size: 3.8rem;
 }
 
 .modal-heading p,
-.otp-panel > p,
 .success-panel > p:not(.section-kicker) {
   max-width: 590px;
   margin-top: 14px;
@@ -1155,8 +1137,7 @@ p {
 
 .consultation-form input,
 .consultation-form textarea,
-.consultation-form select,
-.otp-input {
+.consultation-form select {
   width: 100%;
   border: 1px solid #2d2d29;
   border-radius: 5px;
@@ -1180,8 +1161,7 @@ p {
 
 .consultation-form input:focus,
 .consultation-form textarea:focus,
-.consultation-form select:focus,
-.otp-input:focus {
+.consultation-form select:focus {
   border-color: var(--gold);
   box-shadow: 0 0 0 3px rgba(214, 168, 95, 0.1);
 }
@@ -1227,58 +1207,12 @@ p {
   line-height: 1.5;
 }
 
-.otp-panel,
 .success-panel {
   min-height: 430px;
   display: grid;
   align-content: center;
   justify-items: center;
   text-align: center;
-}
-
-.back-action {
-  position: absolute;
-  top: 18px;
-  left: 18px;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px;
-  border: 0;
-  color: var(--muted);
-  background: transparent;
-  font-size: 0.7rem;
-}
-
-.otp-icon {
-  width: 62px;
-  height: 62px;
-  display: grid;
-  place-items: center;
-  margin-bottom: 20px;
-  border: 1px solid #34342f;
-  border-radius: 50%;
-  color: var(--gold);
-  background: #151513;
-}
-
-.otp-input {
-  max-width: 270px;
-  min-height: 62px;
-  margin: 12px 0 16px;
-  padding: 0 18px;
-  text-align: center;
-  font-size: 1.8rem;
-  font-weight: 700;
-  letter-spacing: 0.35em;
-}
-
-.dev-otp {
-  padding: 8px 10px;
-  border: 1px solid #53462d;
-  border-radius: 4px;
-  color: #cbb178 !important;
-  background: #17140d;
 }
 
 .success-panel svg {
@@ -1471,27 +1405,6 @@ p {
   color: var(--danger);
   font-size: 0.7rem;
   line-height: 1.5;
-}
-
-.admin-success {
-  margin: 0;
-  color: var(--green);
-  font-size: 0.7rem;
-  line-height: 1.5;
-}
-
-.admin-text-action {
-  justify-self: center;
-  border: 0;
-  color: #c9a667;
-  background: transparent;
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
-.admin-text-action:hover {
-  color: var(--gold);
-  text-decoration: underline;
 }
 
 .admin-security-note {
@@ -2446,7 +2359,6 @@ p {
     padding-right: 0;
   }
 
-  .otp-panel,
   .success-panel {
     min-height: 480px;
   }
@@ -2620,7 +2532,6 @@ p {
   }
 
   .modal-heading h2,
-  .otp-panel h2,
   .success-panel h2 {
     font-size: 3rem;
   }

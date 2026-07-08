@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, CheckCircle2, LoaderCircle, LockKeyhole, MailCheck, X } from "lucide-react";
+import { CheckCircle2, LoaderCircle, LockKeyhole, Send, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { services } from "../data";
 import TurnstileWidget from "./TurnstileWidget";
@@ -19,11 +19,9 @@ const emptyForm = {
 function ConsultationModal({ isOpen, onClose, initialService }) {
   const [form, setForm] = useState(emptyForm);
   const [step, setStep] = useState("details");
-  const [otp, setOtp] = useState("");
   const [captchaToken, setCaptchaToken] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  
 
   const handleCaptchaToken = useCallback((token) => setCaptchaToken(token), []);
 
@@ -31,9 +29,8 @@ function ConsultationModal({ isOpen, onClose, initialService }) {
     if (isOpen) {
       setForm({ ...emptyForm, service: initialService || "" });
       setStep("details");
-      setOtp("");
+      setCaptchaToken("");
       setError("");
-      
       document.body.classList.add("modal-open");
     }
     return () => document.body.classList.remove("modal-open");
@@ -44,7 +41,7 @@ function ConsultationModal({ isOpen, onClose, initialService }) {
     setForm((current) => ({ ...current, [name]: type === "checkbox" ? checked : value }));
   };
 
-  const requestOtp = async (event) => {
+  const submitConsultation = async (event) => {
     event.preventDefault();
     setError("");
     if (!captchaToken) {
@@ -53,39 +50,10 @@ function ConsultationModal({ isOpen, onClose, initialService }) {
     }
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/consultations/request-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: form.email,
-          captchaToken,
-          companyWebsite:'',
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Unable to send OTP.");
-      
-      setStep("otp");
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const submitConsultation = async (event) => {
-    event.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
       const response = await fetch(`${API_URL}/api/consultations/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          companyWebsite: "",
-          otp,
-        }),
+        body: JSON.stringify({ ...form, captchaToken }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Unable to submit consultation.");
@@ -120,9 +88,9 @@ function ConsultationModal({ isOpen, onClose, initialService }) {
                 <div className="modal-heading">
                   <span><LockKeyhole size={16} /> Secure consultation request</span>
                   <h2 id="consultation-title">Tell us what you need help with.</h2>
-                  <p>Your email will be verified before the request is accepted. No account or password required.</p>
+                  <p>Complete the human verification and your request will be securely sent to the KINi team.</p>
                 </div>
-                <form className="consultation-form" onSubmit={requestOtp}>
+                <form className="consultation-form" onSubmit={submitConsultation}>
                   <label>
                     Full name
                     <input name="name" value={form.name} onChange={updateField} maxLength="80" required autoComplete="name" />
@@ -160,34 +128,10 @@ function ConsultationModal({ isOpen, onClose, initialService }) {
                   </div>
                   {error && <p className="form-error form-wide">{error}</p>}
                   <button className="primary-button form-wide" type="submit" disabled={loading}>
-                    {loading ? <><LoaderCircle className="spin" size={18} /> Sending OTP</> : <>Verify email and continue <MailCheck size={18} /></>}
+                    {loading ? <><LoaderCircle className="spin" size={18} /> Sending request</> : <>Submit consultation request <Send size={18} /></>}
                   </button>
                 </form>
               </>
-            )}
-
-            {step === "otp" && (
-              <form className="otp-panel" onSubmit={submitConsultation}>
-                <button type="button" className="back-action" onClick={() => setStep("details")}><ArrowLeft size={17} /> Edit details</button>
-                <div className="otp-icon"><MailCheck size={28} /></div>
-                <h2 id="consultation-title">Check your email</h2>
-                <p>Enter the six-digit code sent to <strong>{form.email}</strong>. It expires in 10 minutes.</p>
-                
-                <input
-                  className="otp-input"
-                  value={otp}
-                  onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  aria-label="Six digit OTP"
-                  placeholder="000000"
-                  required
-                />
-                {error && <p className="form-error">{error}</p>}
-                <button className="primary-button" type="submit" disabled={loading || otp.length !== 6}>
-                  {loading ? <><LoaderCircle className="spin" size={18} /> Verifying</> : "Submit consultation request"}
-                </button>
-              </form>
             )}
 
             {step === "success" && (

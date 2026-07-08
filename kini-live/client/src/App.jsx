@@ -141,52 +141,18 @@ function App() {
           </motion.div>
         </section>
 
-<section className="security-section">
-  <div className="section-intro">
-    <p className="section-kicker">Our Approach</p>
-    <h2>A Clear Process. Professional Results.</h2>
-    <p>
-       We understand your requirements, provide expert guidance, and support
-    implementation with a focus on compliance, accuracy, and long-term value.
-    </p>
-  </div>
-
-  <div className="security-grid">
-    <div>
-      <span>01</span>
-      <UserRound size={26} />
-      <h3>Understanding Your Requirements</h3>
-      <p>
-        Every business has unique challenges and compliance needs. We begin by
-        carefully understanding your objectives, current situation, and specific
-        concerns to provide guidance that is practical, relevant, and aligned
-        with your goals.
-      </p>
-    </div>
-
-    <div>
-      <span>02</span>
-      <MessageCircle size={26} />
-      <h3>Strategic Consultation & Planning</h3>
-      <p>
-        Once we understand your requirements, our experts evaluate the situation
-        and recommend the most suitable course of action. We focus on clear
-        communication, practical recommendations, and well-structured solutions.
-      </p>
-    </div>
-
-    <div>
-      <span>03</span>
-      <CheckCircle2 size={26} />
-      <h3>Execution, Compliance & Ongoing Support</h3>
-      <p>
-        Our support continues beyond consultation. We assist throughout the
-        implementation process, help address compliance requirements, and remain
-        available for ongoing guidance whenever needed.
-      </p>
-    </div>
-  </div>
-</section>
+        <section className="security-section">
+          <div className="section-intro">
+            <p className="section-kicker">Responsible by design</p>
+            <h2>A secure way to start a conversation.</h2>
+            <p>No account creation. No password to remember. Consultation requests are protected before they reach us.</p>
+          </div>
+          <div className="security-grid">
+            <div><span>01</span><ShieldCheck size={26} /><h3>Human verification</h3><p>CAPTCHA validation helps block automated and abusive submissions.</p></div>
+            <div><span>02</span><Mail size={26} /><h3>Direct notification</h3><p>Verified requests are sent to the KINi team for follow-up without asking visitors to create an account.</p></div>
+            <div><span>03</span><CheckCircle2 size={26} /><h3>Limited data</h3><p>Only information needed to understand and respond to the request is collected.</p></div>
+          </div>
+        </section>
 
         <FaqSection />
 
@@ -205,23 +171,13 @@ function App() {
       </main>
 
       <footer className="site-footer">
-          <div>
-            <img src="/kini-logo.jpeg" alt="Kini Outsourcing Services logo" />
-              <p>
-                KINi OUTSOURCING SERVICES
-              <br />
-                <span>Tax Consultant</span>
-              </p>
-          </div>
-
-      <p>Your Trusted Partner for Financial Clarity</p>
-
+        <div>
+          <img src="/kini-logo.jpeg" alt="Kini Outsourcing Services logo" />
+          <p>KINi OUTSOURCING SERVICES<br /><span>Tax Consultant</span></p>
+        </div>
+        <p>Your Trusted Partner for Financial Clarity</p>
         <p>(c) {new Date().getFullYear()} Kini Outsourcing Services</p>
-
-      <p className="developer-credit">
-      Designed & Developed by <strong>KUSHAL</strong>
-    </p>
-    </footer>
+      </footer>
 
       <ConsultationModal
         isOpen={consultationOpen}
