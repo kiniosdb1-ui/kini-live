@@ -23,8 +23,9 @@ npm run install:all
 
 ```bash
 copy client\.env.example client\.env
-copy server\.env.example server\.env
 ```
+
+Create `server\.env` manually and keep real backend secrets only in that file.
 
 3. Start MongoDB locally or replace `MONGODB_URI` with a MongoDB Atlas connection string.
 
@@ -90,7 +91,7 @@ Set these secrets before deploying:
 - `NODE_ENV=production`
 - `TRUST_PROXY=true` when deployed behind a trusted reverse proxy
 
-Use `server/.env.production.example` as the production checklist. In production the API refuses to start if localhost origins, localhost MongoDB, Cloudflare test keys, weak secrets, or dev bypass flags are configured.
+Use the production values listed below as the Render checklist. In production the API refuses to start if localhost origins, localhost MongoDB, Cloudflare test keys, weak secrets, or dev bypass flags are configured.
 
 Build the frontend and start the API:
 
