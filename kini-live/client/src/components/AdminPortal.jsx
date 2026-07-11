@@ -28,8 +28,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { services } from "../data";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
-let adminCsrfToken = window.sessionStorage.getItem("kini_admin_csrf_token") || "";
-let adminSessionToken = window.sessionStorage.getItem("kini_admin_session_token") || "";
+const csrfStorageKey = "kini_admin_csrf_token";
+const sessionStorageKey = "kini_admin_session_token";
+let adminCsrfToken = window.sessionStorage.getItem(csrfStorageKey) || window.localStorage.getItem(csrfStorageKey) || "";
+let adminSessionToken = window.sessionStorage.getItem(sessionStorageKey) || window.localStorage.getItem(sessionStorageKey) || "";
 
 const statusOptions = [
   { value: "new", label: "New" },
@@ -82,11 +84,13 @@ async function adminRequest(path, options = {}) {
   }
   if (data.csrfToken) {
     adminCsrfToken = data.csrfToken;
-    window.sessionStorage.setItem("kini_admin_csrf_token", data.csrfToken);
+    window.sessionStorage.setItem(csrfStorageKey, data.csrfToken);
+    window.localStorage.setItem(csrfStorageKey, data.csrfToken);
   }
   if (data.sessionToken) {
     adminSessionToken = data.sessionToken;
-    window.sessionStorage.setItem("kini_admin_session_token", data.sessionToken);
+    window.sessionStorage.setItem(sessionStorageKey, data.sessionToken);
+    window.localStorage.setItem(sessionStorageKey, data.sessionToken);
   }
   return data;
 }
@@ -94,8 +98,10 @@ async function adminRequest(path, options = {}) {
 function clearAdminSessionStorage() {
   adminCsrfToken = "";
   adminSessionToken = "";
-  window.sessionStorage.removeItem("kini_admin_csrf_token");
-  window.sessionStorage.removeItem("kini_admin_session_token");
+  window.sessionStorage.removeItem(csrfStorageKey);
+  window.sessionStorage.removeItem(sessionStorageKey);
+  window.localStorage.removeItem(csrfStorageKey);
+  window.localStorage.removeItem(sessionStorageKey);
 }
 
 function formatDate(value) {

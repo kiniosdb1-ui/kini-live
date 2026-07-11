@@ -32,6 +32,13 @@ const clientOrigins = clientOriginValue
   .map((origin) => origin.trim())
   .filter(Boolean);
 
+const consultantEmails = [
+  process.env.CONSULTANT_EMAIL || "kinioutsourcingservices@gmail.com",
+  "Contact.kinios@gmail.com",
+]
+  .map((email) => email.trim())
+  .filter(Boolean);
+
 const mongoUri =
   requireProductionValue("MONGODB_URI", process.env.MONGODB_URI) ||
   "mongodb://127.0.0.1:27017/kini_outsourcing";
@@ -87,5 +94,6 @@ export const config = {
       requireProductionValue("MAIL_FROM", process.env.MAIL_FROM) ||
       "KINi Outsourcing Services <no-reply@example.com>",
   },
-  consultantEmail: process.env.CONSULTANT_EMAIL || "kinioutsourcingservices@gmail.com",
+  consultantEmail: consultantEmails[0],
+  consultantEmails: [...new Set(consultantEmails.map((email) => email.toLowerCase()))],
 };

@@ -29,7 +29,7 @@ export async function notifyConsultant(consultation) {
 
   await transporter.sendMail({
     from: config.smtp.from,
-    to: config.consultantEmail,
+    to: config.consultantEmails,
     replyTo: consultation.email,
     subject: `New consultation: ${consultation.service}`,
     text: [
