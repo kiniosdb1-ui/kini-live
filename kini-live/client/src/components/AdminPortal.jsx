@@ -125,15 +125,10 @@ function AdminLogin({ onAuthenticated }) {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
-      const verified = await adminRequest("/api/admin/me");
-      onAuthenticated({ ...result, ...verified });
+      onAuthenticated(result);
     } catch (requestError) {
       clearAdminSessionStorage();
-      setError(
-        requestError.status === 401
-          ? "Login accepted, but admin session could not be verified. Redeploy the backend and frontend, then try again."
-          : requestError.message,
-      );
+      setError(requestError.message);
     } finally {
       setLoading(false);
     }
