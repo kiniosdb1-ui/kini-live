@@ -1245,8 +1245,7 @@ p {
   line-height: 0.95;
 }
 
-.admin-login-heading p,
-.admin-security-note {
+.admin-login-heading p {
   color: var(--muted);
   font-size: 0.72rem;
   line-height: 1.7;
@@ -1318,12 +1317,6 @@ p {
   color: var(--danger);
   font-size: 0.7rem;
   line-height: 1.5;
-}
-
-.admin-security-note {
-  margin: 20px 0 0;
-  padding-top: 18px;
-  border-top: 1px solid var(--line);
 }
 
 .admin-dashboard {
@@ -2150,6 +2143,22 @@ p {
 
   .admin-search {
     grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1020px) {
+  .site-header {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .main-nav,
+  .main-nav.open,
+  .menu-button {
+    display: none;
+  }
+
+  .header-actions {
+    justify-self: end;
   }
 }
 

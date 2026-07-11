@@ -16,9 +16,10 @@ function FaqSection() {
       <div className="faq-list">
         {faqs.map((faq, index) => {
           const isOpen = openIndex === index;
+          const answerId = `faq-answer-${index}`;
           return (
             <article className={isOpen ? "faq-item open" : "faq-item"} key={faq.question}>
-              <button type="button" onClick={() => setOpenIndex(isOpen ? -1 : index)} aria-expanded={isOpen}>
+              <button type="button" onClick={() => setOpenIndex(isOpen ? -1 : index)} aria-expanded={isOpen} aria-controls={answerId}>
                 <span>{String(index + 1).padStart(2, "0")}</span>
                 {faq.question}
                 <ChevronDown size={20} />
@@ -26,6 +27,7 @@ function FaqSection() {
               <AnimatePresence initial={false}>
                 {isOpen && (
                   <motion.div
+                    id={answerId}
                     className="faq-answer"
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}

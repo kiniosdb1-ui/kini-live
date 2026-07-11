@@ -15,7 +15,9 @@ import {
 import { useEffect, useState } from "react";
 import ConsultationModal from "./components/ConsultationModal";
 import FaqSection from "./components/FaqSection";
+import Seo from "./components/Seo";
 import ServicesShowcase from "./components/ServicesShowcase";
+import { routeMeta } from "./seo";
 
 const navItems = [
   { label: "Services", target: "services", path: "/services" },
@@ -24,77 +26,17 @@ const navItems = [
   { label: "Contact", target: "contact", path: "/contact" },
 ];
 
-const routeMeta = {
-  "/": {
-    target: "home",
-    title: "KINi Outsourcing Services | Tax Consultant",
-    description: "KINi Outsourcing Services provides trusted accounting, tax, GST, TDS, incorporation, licensing and compliance support.",
-  },
-  "/services": {
-    target: "services",
-    title: "Accounting, Tax, GST & Compliance Services | KINi Outsourcing",
-    description: "Explore KINi Outsourcing Services for accounting, income tax returns, GST returns, TDS filing, company incorporation, licensing and labour law compliance.",
-  },
-  "/about": {
-    target: "about",
-    title: "About Hariom M. Pandey | KINi Outsourcing Services",
-    description: "Learn about Hariom M. Pandey and KINi Outsourcing Services, a client-first tax consultancy focused on accuracy, confidentiality and timely delivery.",
-  },
-  "/contact": {
-    target: "contact",
-    title: "Contact KINi Outsourcing Services | Tax Consultant",
-    description: "Contact KINi Outsourcing Services for accounting, tax, GST, TDS, incorporation, licensing and compliance consultation.",
-  },
-  "/faqs": {
-    target: "faqs",
-    title: "FAQs | KINi Outsourcing Services",
-    description: "Find answers about consultation, accounting, tax filing, GST, TDS and compliance support from KINi Outsourcing Services.",
-  },
-};
-
 const reveal = {
   hidden: { opacity: 0, y: 24, filter: "blur(8px)" },
   visible: { opacity: 1, y: 0, filter: "blur(0px)" },
 };
-
-function setMetaContent(selector, content) {
-  let element = document.querySelector(selector);
-  if (!element) {
-    element = document.createElement("meta");
-    const name = selector.match(/name="([^"]+)"/)?.[1];
-    const property = selector.match(/property="([^"]+)"/)?.[1];
-    if (name) element.setAttribute("name", name);
-    if (property) element.setAttribute("property", property);
-    document.head.appendChild(element);
-  }
-  element.setAttribute("content", content);
-}
-
-function setCanonical(pathname) {
-  let canonical = document.querySelector('link[rel="canonical"]');
-  if (!canonical) {
-    canonical = document.createElement("link");
-    canonical.rel = "canonical";
-    document.head.appendChild(canonical);
-  }
-  canonical.href = `https://kinios.in${pathname === "/" ? "/" : pathname}`;
-}
-
-function updatePageMeta(pathname) {
-  const meta = routeMeta[pathname] || routeMeta["/"];
-  document.title = meta.title;
-  setMetaContent('meta[name="description"]', meta.description);
-  setMetaContent('meta[property="og:title"]', meta.title);
-  setMetaContent('meta[property="og:description"]', meta.description);
-  setMetaContent('meta[property="og:url"]', `https://kinios.in${pathname === "/" ? "/" : pathname}`);
-  setCanonical(pathname);
-}
 
 function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [consultationOpen, setConsultationOpen] = useState(false);
   const [selectedService, setSelectedService] = useState("");
   const [scrolled, setScrolled] = useState(false);
+  const [currentPath, setCurrentPath] = useState(routeMeta[window.location.pathname] ? window.location.pathname : "/");
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 24);
@@ -105,7 +47,7 @@ function App() {
   useEffect(() => {
     const scrollToCurrentRoute = () => {
       const route = routeMeta[window.location.pathname] || routeMeta["/"];
-      updatePageMeta(routeMeta[window.location.pathname] ? window.location.pathname : "/");
+      setCurrentPath(routeMeta[window.location.pathname] ? window.location.pathname : "/");
       const targetSelector = window.location.hash || `#${route.target}`;
       const target = document.querySelector(targetSelector);
       if (!target) return;
@@ -129,7 +71,7 @@ function App() {
     if (window.location.pathname !== pathname) {
       window.history.pushState(null, "", pathname);
     }
-    updatePageMeta(pathname);
+    setCurrentPath(routeMeta[pathname] ? pathname : "/");
     target.scrollIntoView({ behavior: "smooth", block: "start" });
     setMenuOpen(false);
   };
@@ -141,9 +83,10 @@ function App() {
 
   return (
     <div className="site-shell">
+      <Seo pathname={currentPath} />
       <header className={scrolled ? "site-header scrolled" : "site-header"}>
         <a className="brand-lockup" href="/" onClick={(event) => { event.preventDefault(); scrollToSection("home", "/"); }} aria-label="Kini Outsourcing Services home">
-          <img src="/kini-logo.jpeg" alt="" />
+          <img src="/kini-logo.jpeg" alt="KINi Outsourcing Services logo" width="50" height="42" fetchPriority="high" decoding="async" />
           <span><strong>KINi</strong><small>Tax Consultant</small></span>
         </a>
 
@@ -164,7 +107,7 @@ function App() {
 
       <main>
         <section className="hero" id="home">
-          <img className="hero-watermark" src="/kini-logo.jpeg" alt="" aria-hidden="true" />
+          <img className="hero-watermark" src="/kini-logo.jpeg" alt="" aria-hidden="true" fetchPriority="high" decoding="async" />
           <div className="hero-glow" aria-hidden="true" />
           <motion.div className="hero-content" initial="hidden" animate="visible" transition={{ staggerChildren: 0.12 }}>
             <motion.p variants={reveal} transition={{ duration: 0.7 }} className="hero-eyebrow">
@@ -201,7 +144,7 @@ function App() {
 
         <section className="about-section" id="about">
           <motion.div className="about-image-wrap" initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }}>
-            <img src="/hariom-pandey.jpeg" alt="Hariom M. Pandey, Founder and Tax Consultant" />
+            <img src="/hariom-pandey.jpeg" alt="Hariom M. Pandey, Founder and Tax Consultant at KINi Outsourcing Services" loading="lazy" decoding="async" />
             <div className="about-image-label"><span>Founder profile</span> Direct, accountable support</div>
           </motion.div>
           <motion.div className="about-copy" initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ delay: 0.12 }}>
@@ -254,7 +197,7 @@ function App() {
 
       <footer className="site-footer">
         <div>
-          <img src="/kini-logo.jpeg" alt="Kini Outsourcing Services logo" />
+          <img src="/kini-logo.jpeg" alt="KINi Outsourcing Services logo" loading="lazy" decoding="async" />
           <p>KINi OUTSOURCING SERVICES<br /><span>Tax Consultant</span></p>
         </div>
         <p>Your Trusted Partner for Financial Clarity</p>

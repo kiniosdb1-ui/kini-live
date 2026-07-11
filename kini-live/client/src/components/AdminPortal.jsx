@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { Helmet } from "react-helmet-async";
 import {
   ArrowLeft,
   ArrowRight,
@@ -144,7 +145,7 @@ function AdminLogin({ onAuthenticated }) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <img src="/kini-logo.jpeg" alt="KINi Outsourcing Services" />
+        <img src="/kini-logo.jpeg" alt="KINi Outsourcing Services logo" fetchPriority="high" decoding="async" />
         <div className="admin-login-heading">
           <span><ShieldCheck size={16} /> Protected owner access</span>
           <h1>Admin panel</h1>
@@ -177,9 +178,6 @@ function AdminLogin({ onAuthenticated }) {
             {loading ? <><LoaderCircle className="spin" size={18} /> Signing in</> : <><LockKeyhole size={18} /> Secure sign in</>}
           </button>
         </form>
-        <p className="admin-security-note">
-          Login attempts are rate-limited. Sessions use secure HttpOnly cookies and automatically expire.
-        </p>
       </motion.section>
     </main>
   );
@@ -375,7 +373,7 @@ function AdminDashboard({ admin, onLoggedOut }) {
     <div className="admin-dashboard">
       <aside className={sidebarOpen ? "admin-sidebar open" : "admin-sidebar"}>
         <div className="admin-sidebar-brand">
-          <img src="/kini-logo.jpeg" alt="" />
+          <img src="/kini-logo.jpeg" alt="KINi Outsourcing Services logo" loading="lazy" decoding="async" />
           <span><strong>KINi</strong><small>Secure admin</small></span>
           <button type="button" onClick={() => setSidebarOpen(false)} aria-label="Close navigation"><X size={18} /></button>
         </div>
@@ -503,17 +501,6 @@ function AdminPortal() {
   const [admin, setAdmin] = useState(null);
 
   useEffect(() => {
-    document.title = "Secure Admin | KINi Outsourcing Services";
-    let robotsMeta = document.querySelector('meta[name="robots"]');
-    const previousRobotsContent = robotsMeta?.content;
-    const createdRobotsMeta = !robotsMeta;
-    if (!robotsMeta) {
-      robotsMeta = document.createElement("meta");
-      robotsMeta.name = "robots";
-      document.head.appendChild(robotsMeta);
-    }
-    robotsMeta.content = "noindex, nofollow, noarchive";
-
     adminRequest("/api/admin/me")
       .then((result) => {
         setAdmin(result);
@@ -523,22 +510,26 @@ function AdminPortal() {
         clearAdminSessionStorage();
         setAuthState("anonymous");
       });
-    return () => {
-      document.title = "KINi Outsourcing Services | Tax Consultant";
-      if (createdRobotsMeta) robotsMeta.remove();
-      else robotsMeta.content = previousRobotsContent;
-    };
   }, []);
 
+  const adminSeo = (
+    <Helmet>
+      {/* SEO: keep the private admin area out of search results. */}
+      <title>Secure Admin | KINi Outsourcing Services</title>
+      <meta name="robots" content="noindex, nofollow, noarchive" />
+      <link rel="canonical" href="https://kinios.in/admin" />
+    </Helmet>
+  );
+
   if (authState === "checking") {
-    return <div className="admin-checking"><LoaderCircle className="spin" size={28} /><span>Checking secure session...</span></div>;
+    return <>{adminSeo}<div className="admin-checking"><LoaderCircle className="spin" size={28} /><span>Checking secure session...</span></div></>;
   }
 
   if (authState === "anonymous") {
-    return <AdminLogin onAuthenticated={(result) => { setAdmin(result); setAuthState("authenticated"); }} />;
+    return <>{adminSeo}<AdminLogin onAuthenticated={(result) => { setAdmin(result); setAuthState("authenticated"); }} /></>;
   }
 
-  return <AdminDashboard admin={admin} onLoggedOut={() => { clearAdminSessionStorage(); setAdmin(null); setAuthState("anonymous"); }} />;
+  return <>{adminSeo}<AdminDashboard admin={admin} onLoggedOut={() => { clearAdminSessionStorage(); setAdmin(null); setAuthState("anonymous"); }} /></>;
 }
 
 export default AdminPortal;

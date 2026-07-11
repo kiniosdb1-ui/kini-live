@@ -1,0 +1,18 @@
+{
+  "name": "KINi Outsourcing Services",
+  "short_name": "KINi",
+  "description": "Accounting, tax, GST, TDS, company incorporation, licensing and compliance support.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "icons": [
+    {
+      "src": "/kini-logo.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
