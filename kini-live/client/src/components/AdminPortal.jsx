@@ -56,6 +56,10 @@ function readCsrfToken() {
   return "";
 }
 
+function hasAdminSessionHint() {
+  return Boolean(adminSessionToken || adminCsrfToken || readCsrfToken());
+}
+
 async function adminRequest(path, options = {}) {
   const headers = { ...(options.headers || {}) };
   if (options.body) headers["Content-Type"] = "application/json";
@@ -501,6 +505,11 @@ function AdminPortal() {
   const [admin, setAdmin] = useState(null);
 
   useEffect(() => {
+    if (!hasAdminSessionHint()) {
+      setAuthState("anonymous");
+      return;
+    }
+
     adminRequest("/api/admin/me")
       .then((result) => {
         setAdmin(result);
