@@ -16,13 +16,12 @@ import { useEffect, useState } from "react";
 import ConsultationModal from "./components/ConsultationModal";
 import FaqSection from "./components/FaqSection";
 import ServicesShowcase from "./components/ServicesShowcase";
-import StorySection from "./components/StorySection";
 
 const navItems = [
-  { label: "Services", href: "#services" },
-  { label: "About", href: "#about" },
-  { label: "FAQs", href: "#faqs" },
-  { label: "Contact", href: "#contact" },
+  { label: "Services", target: "services" },
+  { label: "About", target: "about" },
+  { label: "FAQs", target: "faqs" },
+  { label: "Contact", target: "contact" },
 ];
 
 const reveal = {
@@ -46,9 +45,21 @@ function App() {
     if (!window.location.hash) return;
     const target = document.querySelector(window.location.hash);
     if (target) {
-      window.requestAnimationFrame(() => target.scrollIntoView({ block: "start" }));
+      window.requestAnimationFrame(() => {
+        target.scrollIntoView({ block: "start" });
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      });
     }
   }, []);
+
+  const scrollToSection = (targetId) => {
+    const target = document.getElementById(targetId);
+    if (!target) return;
+
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    setMenuOpen(false);
+  };
 
   const openConsultation = (service = "") => {
     setSelectedService(service);
@@ -58,14 +69,14 @@ function App() {
   return (
     <div className="site-shell">
       <header className={scrolled ? "site-header scrolled" : "site-header"}>
-        <a className="brand-lockup" href="#home" aria-label="Kini Outsourcing Services home">
+        <a className="brand-lockup" href="/" onClick={(event) => { event.preventDefault(); scrollToSection("home"); }} aria-label="Kini Outsourcing Services home">
           <img src="/kini-logo.jpeg" alt="" />
           <span><strong>KINi</strong><small>Tax Consultant</small></span>
         </a>
 
         <nav className={menuOpen ? "main-nav open" : "main-nav"} aria-label="Primary navigation">
           {navItems.map((item) => (
-            <a key={item.href} href={item.href} onClick={() => setMenuOpen(false)}>{item.label}</a>
+            <button key={item.target} type="button" onClick={() => scrollToSection(item.target)}>{item.label}</button>
           ))}
         </nav>
 
@@ -108,12 +119,10 @@ function App() {
             <div><Clock3 size={18} /><span>Deadline-aware</span></div>
           </motion.div>
 
-          <a className="hero-scroll" href="#services" aria-label="Scroll to services">
-            Explore <ArrowDownRight size={17} />
-          </a>
+          <button className="hero-scroll" type="button" onClick={() => scrollToSection("services")} aria-label="Scroll to services">
+            Services <ArrowDownRight size={17} />
+          </button>
         </section>
-
-        <StorySection />
 
         <ServicesShowcase onConsult={openConsultation} />
 
@@ -176,7 +185,7 @@ function App() {
           <p>KINi OUTSOURCING SERVICES<br /><span>Tax Consultant</span></p>
         </div>
         <p>Your Trusted Partner for Financial Clarity</p>
-        <p>(c) {new Date().getFullYear()} Kini Outsourcing Services</p>
+        <p>(c) {new Date().getFullYear()} Kini Outsourcing Services<br /><span className="developer-credit">Developed and Design by Kushal Shukla</span></p>
       </footer>
 
       <ConsultationModal

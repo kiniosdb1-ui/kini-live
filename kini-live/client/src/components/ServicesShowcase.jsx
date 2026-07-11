@@ -1,4 +1,4 @@
-import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "framer-motion";
+import { AnimatePresence, motion, useMotionValueEvent, useScroll, useTransform } from "framer-motion";
 import {
   ArrowUpRight,
   BadgeIndianRupee,
@@ -47,6 +47,50 @@ function ServiceVisual({ service }) {
   );
 }
 
+function MobileServiceCard({ service, onConsult }) {
+  const cardRef = useRef(null);
+  const Icon = iconMap[service.icon];
+  const { scrollYProgress } = useScroll({
+    target: cardRef,
+    offset: ["start 88%", "end 28%"],
+  });
+
+  const cardOpacity = useTransform(scrollYProgress, [0, 0.22, 0.86, 1], [0, 1, 1, 0.74]);
+  const cardX = useTransform(scrollYProgress, [0, 0.34, 1], [84, 0, -14]);
+  const cardScale = useTransform(scrollYProgress, [0, 0.34, 1], [0.92, 1, 0.98]);
+  const titleX = useTransform(scrollYProgress, [0.12, 0.48], [96, 0]);
+  const textX = useTransform(scrollYProgress, [0.2, 0.56], [118, 0]);
+  const lineScale = useTransform(scrollYProgress, [0.24, 0.72], [0, 1]);
+  const iconRotate = useTransform(scrollYProgress, [0, 1], [-10, 8]);
+
+  return (
+    <article className="mobile-service-scene" ref={cardRef}>
+      <motion.div
+        className="mobile-service"
+        style={{ opacity: cardOpacity, x: cardX, scale: cardScale }}
+      >
+        <div className="mobile-service-topline">
+          <span>{service.code}</span>
+          <motion.div style={{ rotate: iconRotate }}>
+            <Icon size={28} strokeWidth={1.5} />
+          </motion.div>
+        </div>
+        <motion.div className="mobile-service-rule" style={{ scaleX: lineScale }} />
+        <motion.h3 style={{ x: titleX }}>{service.name}</motion.h3>
+        <motion.p style={{ x: textX }}>{service.description}</motion.p>
+        <motion.button
+          type="button"
+          className="text-action"
+          style={{ x: textX }}
+          onClick={() => onConsult(service.name)}
+        >
+          Discuss this service <ArrowUpRight size={15} aria-hidden="true" />
+        </motion.button>
+      </motion.div>
+    </article>
+  );
+}
+
 function ServicesShowcase({ onConsult }) {
   const sectionRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -89,10 +133,10 @@ function ServicesShowcase({ onConsult }) {
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeService.code}
-                  initial={{ opacity: 0, y: 32, filter: "blur(8px)" }}
-                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                  exit={{ opacity: 0, y: -24, filter: "blur(8px)" }}
-                  transition={{ duration: 0.42 }}
+                  initial={{ opacity: 0, x: 84, y: 18, filter: "blur(10px)" }}
+                  animate={{ opacity: 1, x: 0, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, x: -48, y: -8, filter: "blur(10px)" }}
+                  transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
                 >
                   <span className="detail-code">{activeService.code} / 08</span>
                   <h3>{activeService.name}</h3>
@@ -118,32 +162,21 @@ function ServicesShowcase({ onConsult }) {
       </div>
 
       <div className="services-mobile">
-        <div className="services-heading">
+        <motion.div
+          className="services-heading"
+          initial={{ opacity: 0, x: -72, y: 20, filter: "blur(14px)" }}
+          whileInView={{ opacity: 1, x: 0, y: 0, filter: "blur(0px)" }}
+          viewport={{ once: true, amount: 0.45 }}
+          transition={{ duration: 0.82, ease: [0.16, 1, 0.3, 1] }}
+        >
           <p className="section-kicker">Core services</p>
           <h2>Expert support for every requirement.</h2>
+        </motion.div>
+        <div className="mobile-services-stack">
+          {services.map((service) => (
+            <MobileServiceCard key={service.code} service={service} onConsult={onConsult} />
+          ))}
         </div>
-        {services.map((service) => {
-          const Icon = iconMap[service.icon];
-          return (
-            <motion.article
-              className="mobile-service"
-              key={service.code}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-            >
-              <div>
-                <span>{service.code}</span>
-                <Icon size={28} strokeWidth={1.5} />
-              </div>
-              <h3>{service.name}</h3>
-              <p>{service.description}</p>
-              <button type="button" className="text-action" onClick={() => onConsult(service.name)}>
-                Discuss this service <ArrowUpRight size={15} aria-hidden="true" />
-              </button>
-            </motion.article>
-          );
-        })}
       </div>
     </section>
   );
