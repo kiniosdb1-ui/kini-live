@@ -18,16 +18,77 @@ import FaqSection from "./components/FaqSection";
 import ServicesShowcase from "./components/ServicesShowcase";
 
 const navItems = [
-  { label: "Services", target: "services" },
-  { label: "About", target: "about" },
-  { label: "FAQs", target: "faqs" },
-  { label: "Contact", target: "contact" },
+  { label: "Services", target: "services", path: "/services" },
+  { label: "About", target: "about", path: "/about" },
+  { label: "FAQs", target: "faqs", path: "/faqs" },
+  { label: "Contact", target: "contact", path: "/contact" },
 ];
+
+const routeMeta = {
+  "/": {
+    target: "home",
+    title: "KINi Outsourcing Services | Tax Consultant",
+    description: "KINi Outsourcing Services provides trusted accounting, tax, GST, TDS, incorporation, licensing and compliance support.",
+  },
+  "/services": {
+    target: "services",
+    title: "Accounting, Tax, GST & Compliance Services | KINi Outsourcing",
+    description: "Explore KINi Outsourcing Services for accounting, income tax returns, GST returns, TDS filing, company incorporation, licensing and labour law compliance.",
+  },
+  "/about": {
+    target: "about",
+    title: "About Hariom M. Pandey | KINi Outsourcing Services",
+    description: "Learn about Hariom M. Pandey and KINi Outsourcing Services, a client-first tax consultancy focused on accuracy, confidentiality and timely delivery.",
+  },
+  "/contact": {
+    target: "contact",
+    title: "Contact KINi Outsourcing Services | Tax Consultant",
+    description: "Contact KINi Outsourcing Services for accounting, tax, GST, TDS, incorporation, licensing and compliance consultation.",
+  },
+  "/faqs": {
+    target: "faqs",
+    title: "FAQs | KINi Outsourcing Services",
+    description: "Find answers about consultation, accounting, tax filing, GST, TDS and compliance support from KINi Outsourcing Services.",
+  },
+};
 
 const reveal = {
   hidden: { opacity: 0, y: 24, filter: "blur(8px)" },
   visible: { opacity: 1, y: 0, filter: "blur(0px)" },
 };
+
+function setMetaContent(selector, content) {
+  let element = document.querySelector(selector);
+  if (!element) {
+    element = document.createElement("meta");
+    const name = selector.match(/name="([^"]+)"/)?.[1];
+    const property = selector.match(/property="([^"]+)"/)?.[1];
+    if (name) element.setAttribute("name", name);
+    if (property) element.setAttribute("property", property);
+    document.head.appendChild(element);
+  }
+  element.setAttribute("content", content);
+}
+
+function setCanonical(pathname) {
+  let canonical = document.querySelector('link[rel="canonical"]');
+  if (!canonical) {
+    canonical = document.createElement("link");
+    canonical.rel = "canonical";
+    document.head.appendChild(canonical);
+  }
+  canonical.href = `https://kinios.in${pathname === "/" ? "/" : pathname}`;
+}
+
+function updatePageMeta(pathname) {
+  const meta = routeMeta[pathname] || routeMeta["/"];
+  document.title = meta.title;
+  setMetaContent('meta[name="description"]', meta.description);
+  setMetaContent('meta[property="og:title"]', meta.title);
+  setMetaContent('meta[property="og:description"]', meta.description);
+  setMetaContent('meta[property="og:url"]', `https://kinios.in${pathname === "/" ? "/" : pathname}`);
+  setCanonical(pathname);
+}
 
 function App() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -42,22 +103,34 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!window.location.hash) return;
-    const target = document.querySelector(window.location.hash);
-    if (target) {
+    const scrollToCurrentRoute = () => {
+      const route = routeMeta[window.location.pathname] || routeMeta["/"];
+      updatePageMeta(routeMeta[window.location.pathname] ? window.location.pathname : "/");
+      const targetSelector = window.location.hash || `#${route.target}`;
+      const target = document.querySelector(targetSelector);
+      if (!target) return;
       window.requestAnimationFrame(() => {
         target.scrollIntoView({ block: "start" });
-        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        if (window.location.hash) {
+          window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        }
       });
-    }
+    };
+
+    scrollToCurrentRoute();
+    window.addEventListener("popstate", scrollToCurrentRoute);
+    return () => window.removeEventListener("popstate", scrollToCurrentRoute);
   }, []);
 
-  const scrollToSection = (targetId) => {
+  const scrollToSection = (targetId, pathname = "/") => {
     const target = document.getElementById(targetId);
     if (!target) return;
 
+    if (window.location.pathname !== pathname) {
+      window.history.pushState(null, "", pathname);
+    }
+    updatePageMeta(pathname);
     target.scrollIntoView({ behavior: "smooth", block: "start" });
-    window.history.replaceState(null, "", window.location.pathname + window.location.search);
     setMenuOpen(false);
   };
 
@@ -69,14 +142,14 @@ function App() {
   return (
     <div className="site-shell">
       <header className={scrolled ? "site-header scrolled" : "site-header"}>
-        <a className="brand-lockup" href="/" onClick={(event) => { event.preventDefault(); scrollToSection("home"); }} aria-label="Kini Outsourcing Services home">
+        <a className="brand-lockup" href="/" onClick={(event) => { event.preventDefault(); scrollToSection("home", "/"); }} aria-label="Kini Outsourcing Services home">
           <img src="/kini-logo.jpeg" alt="" />
           <span><strong>KINi</strong><small>Tax Consultant</small></span>
         </a>
 
         <nav className={menuOpen ? "main-nav open" : "main-nav"} aria-label="Primary navigation">
           {navItems.map((item) => (
-            <button key={item.target} type="button" onClick={() => scrollToSection(item.target)}>{item.label}</button>
+            <a key={item.target} href={item.path} onClick={(event) => { event.preventDefault(); scrollToSection(item.target, item.path); }}>{item.label}</a>
           ))}
         </nav>
 
@@ -119,7 +192,7 @@ function App() {
             <div><Clock3 size={18} /><span>Deadline-aware</span></div>
           </motion.div>
 
-          <button className="hero-scroll" type="button" onClick={() => scrollToSection("services")} aria-label="Scroll to services">
+          <button className="hero-scroll" type="button" onClick={() => scrollToSection("services", "/services")} aria-label="Scroll to services">
             Services <ArrowDownRight size={17} />
           </button>
         </section>

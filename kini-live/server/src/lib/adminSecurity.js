@@ -46,11 +46,18 @@ function parseCookies(header = "") {
   );
 }
 
+function readBearerToken(req) {
+  const authorization = req.get("authorization") || "";
+  const [scheme, token] = authorization.split(" ");
+  if (scheme?.toLowerCase() !== "bearer" || !token) return "";
+  return token;
+}
+
 function cookieOptions(httpOnly) {
   return {
     httpOnly,
     secure: config.isProduction,
-    sameSite: "strict",
+    sameSite: config.isProduction ? "none" : "strict",
     path: "/",
     maxAge: SESSION_HOURS * 60 * 60 * 1000,
   };
@@ -61,9 +68,9 @@ export function hashAdminPassword(password, salt = crypto.randomBytes(16).toStri
   return `${salt}:${passwordHash}`;
 }
 
-export function verifyAdminPassword(password, storedHash = config.adminPasswordHash) {
-  if (!storedHash || typeof password !== "string") return false;
-  const [salt, expectedHex] = storedHash.split(":");
+export function verifyAdminPassword(password) {
+  if (!config.adminPasswordHash || typeof password !== "string") return false;
+  const [salt, expectedHex] = config.adminPasswordHash.split(":");
   if (!salt || !expectedHex) return false;
   const candidate = crypto.scryptSync(password, salt, 64);
   const expected = Buffer.from(expectedHex, "hex");
@@ -85,11 +92,21 @@ export async function createAdminSession(req, res) {
 
   res.cookie(sessionCookieName, sessionToken, cookieOptions(true));
   res.cookie(csrfCookieName, csrfToken, cookieOptions(false));
+  return { sessionToken, csrfToken };
+}
+
+export async function refreshAdminCsrf(req, res) {
+  const csrfToken = crypto.randomBytes(32).toString("base64url");
+  req.adminSession.csrfHash = hash(csrfToken);
+  req.adminSession.lastSeenAt = new Date();
+  await req.adminSession.save();
+  res.cookie(csrfCookieName, csrfToken, cookieOptions(false));
+  return csrfToken;
 }
 
 export async function clearAdminSession(req, res) {
   const cookies = parseCookies(req.headers.cookie);
-  const token = cookies[sessionCookieName];
+  const token = cookies[sessionCookieName] || readBearerToken(req);
   if (token) await AdminSession.deleteOne({ tokenHash: hash(token) });
   res.clearCookie(sessionCookieName, { ...cookieOptions(true), maxAge: undefined });
   res.clearCookie(csrfCookieName, { ...cookieOptions(false), maxAge: undefined });
@@ -98,7 +115,7 @@ export async function clearAdminSession(req, res) {
 export async function requireAdmin(req, res, next) {
   try {
     const cookies = parseCookies(req.headers.cookie);
-    const token = cookies[sessionCookieName];
+    const token = cookies[sessionCookieName] || readBearerToken(req);
     if (!token) return res.status(401).json({ message: "Admin authentication required." });
 
     const session = await AdminSession.findOne({
@@ -114,6 +131,7 @@ export async function requireAdmin(req, res, next) {
     await session.save();
     req.adminSession = session;
     req.adminCookies = cookies;
+    req.adminBearerToken = readBearerToken(req);
     return next();
   } catch (error) {
     return next(error);
@@ -131,10 +149,10 @@ export function requireAllowedAdminOrigin(req, res, next) {
 export function requireCsrf(req, res, next) {
   const headerToken = req.get("x-csrf-token");
   const cookieToken = req.adminCookies?.[csrfCookieName];
+  const hasBearerSession = Boolean(req.adminBearerToken);
   if (
     !headerToken ||
-    !cookieToken ||
-    !secureEqual(headerToken, cookieToken) ||
+    (!hasBearerSession && (!cookieToken || !secureEqual(headerToken, cookieToken))) ||
     !secureEqual(hash(headerToken), req.adminSession.csrfHash)
   ) {
     return res.status(403).json({ message: "Security token validation failed." });

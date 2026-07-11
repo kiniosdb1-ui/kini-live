@@ -23,10 +23,12 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { services } from "../data";
 
 const API_URL = import.meta.env.VITE_API_URL || "";
+let adminCsrfToken = window.sessionStorage.getItem("kini_admin_csrf_token") || "";
+let adminSessionToken = window.sessionStorage.getItem("kini_admin_session_token") || "";
 
 const statusOptions = [
   { value: "new", label: "New" },
@@ -56,8 +58,9 @@ function readCsrfToken() {
 async function adminRequest(path, options = {}) {
   const headers = { ...(options.headers || {}) };
   if (options.body) headers["Content-Type"] = "application/json";
+  if (adminSessionToken) headers.Authorization = `Bearer ${adminSessionToken}`;
   if (options.method && options.method !== "GET") {
-    const csrfToken = readCsrfToken();
+    const csrfToken = adminCsrfToken || readCsrfToken();
     if (csrfToken) headers["X-CSRF-Token"] = csrfToken;
   }
 
@@ -72,7 +75,22 @@ async function adminRequest(path, options = {}) {
     error.status = response.status;
     throw error;
   }
+  if (data.csrfToken) {
+    adminCsrfToken = data.csrfToken;
+    window.sessionStorage.setItem("kini_admin_csrf_token", data.csrfToken);
+  }
+  if (data.sessionToken) {
+    adminSessionToken = data.sessionToken;
+    window.sessionStorage.setItem("kini_admin_session_token", data.sessionToken);
+  }
   return data;
+}
+
+function clearAdminSessionStorage() {
+  adminCsrfToken = "";
+  adminSessionToken = "";
+  window.sessionStorage.removeItem("kini_admin_csrf_token");
+  window.sessionStorage.removeItem("kini_admin_session_token");
 }
 
 function formatDate(value) {
@@ -90,101 +108,31 @@ function StatusBadge({ status }) {
 function AdminLogin({ onAuthenticated }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [resetToken, setResetToken] = useState(
-    () => new URLSearchParams(window.location.search).get("resetToken") || "",
-  );
-  const [mode, setMode] = useState(() => resetToken ? "reset" : "login");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
 
-  const submitLogin = async (event) => {
+  const submit = async (event) => {
     event.preventDefault();
     setError("");
-    setMessage("");
     setLoading(true);
     try {
       const result = await adminRequest("/api/admin/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
-      onAuthenticated(result);
+      const verified = await adminRequest("/api/admin/me");
+      onAuthenticated({ ...result, ...verified });
     } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const requestReset = async (event) => {
-    event.preventDefault();
-    setError("");
-    setMessage("");
-    setLoading(true);
-    try {
-      const result = await adminRequest("/api/admin/forgot-password", {
-        method: "POST",
-        body: JSON.stringify({ email }),
-      });
-      setMessage(result.message);
-        setMessage(
-          "If an account exists for this email, a reset link has been sent."
+      clearAdminSessionStorage();
+      setError(
+        requestError.status === 401
+          ? "Login accepted, but admin session could not be verified. Redeploy the backend and frontend, then try again."
+          : requestError.message,
       );
-    } catch (requestError) {
-      setError(requestError.message);
     } finally {
       setLoading(false);
     }
   };
-
-  const resetPassword = async (event) => {
-    event.preventDefault();
-    setError("");
-    setMessage("");
-    setLoading(true);
-    try {
-      const result = await adminRequest("/api/admin/reset-password", {
-        method: "POST",
-        body: JSON.stringify({ token: resetToken, password, confirmPassword }),
-      });
-      window.history.replaceState({}, "", window.location.pathname);
-      setPassword("");
-      setConfirmPassword("");
-      setResetToken("");
-      setMode("login");
-      setMessage(result.message);
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const showLogin = () => {
-    window.history.replaceState({}, "", window.location.pathname);
-    setMode("login");
-    setResetToken("");
-    setPassword("");
-    setConfirmPassword("");
-    setError("");
-    setMessage("");
-  };
-
-  const heading = mode === "login"
-    ? {
-        title: "login",
-        description: "Sign in to securely review verified consultation requests and manage follow-ups.",
-      }
-    : mode === "forgot"
-      ? {
-          title: "Reset access",
-          description: "Enter the configured admin email and we will send a short-lived reset link.",
-        }
-      : {
-          title: "New password",
-          description: "Choose a new password with at least 12 characters, including a letter and number.",
-        };
 
   return (
     <main className="admin-login-page">
@@ -199,106 +147,38 @@ function AdminLogin({ onAuthenticated }) {
         <img src="/kini-logo.jpeg" alt="KINi Outsourcing Services" />
         <div className="admin-login-heading">
           <span><ShieldCheck size={16} /> Protected owner access</span>
-          <h1>{heading.title}</h1>
-          <p>{heading.description}</p>
+          <h1>Admin panel</h1>
+          <p>Sign in to securely review verified consultation requests and manage follow-ups.</p>
         </div>
-        {mode === "login" && (
-          <form onSubmit={submitLogin}>
-            <label>
-              Admin email
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                autoComplete="username"
-                required
-              />
-            </label>
-            <label>
-              Password
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                autoComplete="current-password"
-                maxLength="256"
-                required
-              />
-            </label>
-            {error && <p className="admin-error">{error}</p>}
-            {message && <p className="admin-success">{message}</p>}
-            <button className="admin-primary-action" type="submit" disabled={loading}>
-              {loading ? <><LoaderCircle className="spin" size={18} /> Signing in</> : <><LockKeyhole size={18} /> Secure sign in</>}
-            </button>
-            <button className="admin-text-action" type="button" onClick={() => {
-              setMode("forgot");
-              setError("");
-              setMessage("");
-            }}>
-              Forgot password?
-            </button>
-          </form>
-        )}
-        {mode === "forgot" && (
-          <form onSubmit={requestReset}>
-            <label>
-              Admin email
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                autoComplete="email"
-                required
-              />
-            </label>
-            {error && <p className="admin-error">{error}</p>}
-            {message && <p className="admin-success">{message}</p>}
-            <button className="admin-primary-action" type="submit" disabled={loading}>
-              {loading ? <><LoaderCircle className="spin" size={18} /> Sending link</> : <><Mail size={18} /> Send reset link</>}
-            </button>
-            <button className="admin-text-action" type="button" onClick={showLogin}>
-              Back to sign in
-            </button>
-          </form>
-        )}
-        {mode === "reset" && (
-          <form onSubmit={resetPassword}>
-            <label>
-              New password
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                autoComplete="new-password"
-                minLength="12"
-                maxLength="128"
-                required
-              />
-            </label>
-            <label>
-              Confirm new password
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                autoComplete="new-password"
-                minLength="12"
-                maxLength="128"
-                required
-              />
-            </label>
-            {error && <p className="admin-error">{error}</p>}
-            {message && <p className="admin-success">{message}</p>}
-            <button className="admin-primary-action" type="submit" disabled={loading}>
-              {loading ? <><LoaderCircle className="spin" size={18} /> Updating password</> : <><LockKeyhole size={18} /> Set new password</>}
-            </button>
-            <button className="admin-text-action" type="button" onClick={showLogin}>
-              Back to sign in
-            </button>
-          </form>
-        )}
+        <form onSubmit={submit}>
+          <label>
+            Admin email
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              autoComplete="username"
+              required
+            />
+          </label>
+          <label>
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete="current-password"
+              maxLength="256"
+              required
+            />
+          </label>
+          {error && <p className="admin-error">{error}</p>}
+          <button className="admin-primary-action" type="submit" disabled={loading}>
+            {loading ? <><LoaderCircle className="spin" size={18} /> Signing in</> : <><LockKeyhole size={18} /> Secure sign in</>}
+          </button>
+        </form>
         <p className="admin-security-note">
-          Login and reset attempts are rate-limited. Reset links expire after 15 minutes and work only once.
+          Login attempts are rate-limited. Sessions use secure HttpOnly cookies and automatically expire.
         </p>
       </motion.section>
     </main>
@@ -409,6 +289,7 @@ function AdminDashboard({ admin, onLoggedOut }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const authFailedRef = useRef(false);
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams({
@@ -422,8 +303,15 @@ function AdminDashboard({ admin, onLoggedOut }) {
   }, [filters]);
 
   const handleAuthError = useCallback((requestError) => {
-    if (requestError.status === 401) onLoggedOut();
-    else setError(requestError.message);
+    if (requestError.status === 401) {
+      if (!authFailedRef.current) {
+        authFailedRef.current = true;
+        clearAdminSessionStorage();
+        onLoggedOut();
+      }
+      return;
+    }
+    setError(requestError.message);
   }, [onLoggedOut]);
 
   const loadStats = useCallback(async () => {
@@ -461,6 +349,7 @@ function AdminDashboard({ admin, onLoggedOut }) {
     try {
       await adminRequest("/api/admin/logout", { method: "POST" });
     } finally {
+      clearAdminSessionStorage();
       onLoggedOut();
     }
   };
@@ -630,7 +519,10 @@ function AdminPortal() {
         setAdmin(result);
         setAuthState("authenticated");
       })
-      .catch(() => setAuthState("anonymous"));
+      .catch(() => {
+        clearAdminSessionStorage();
+        setAuthState("anonymous");
+      });
     return () => {
       document.title = "KINi Outsourcing Services | Tax Consultant";
       if (createdRobotsMeta) robotsMeta.remove();
@@ -646,7 +538,7 @@ function AdminPortal() {
     return <AdminLogin onAuthenticated={(result) => { setAdmin(result); setAuthState("authenticated"); }} />;
   }
 
-  return <AdminDashboard admin={admin} onLoggedOut={() => { setAdmin(null); setAuthState("anonymous"); }} />;
+  return <AdminDashboard admin={admin} onLoggedOut={() => { clearAdminSessionStorage(); setAdmin(null); setAuthState("anonymous"); }} />;
 }
 
 export default AdminPortal;

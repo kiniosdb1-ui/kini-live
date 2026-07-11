@@ -1,4 +1,3 @@
-import crypto from "node:crypto";
 import { Router } from "express";
 import { rateLimit } from "express-rate-limit";
 import mongoose from "mongoose";
@@ -10,12 +9,9 @@ import {
   requireAdmin,
   requireAllowedAdminOrigin,
   requireCsrf,
-  hashAdminPassword,
+  refreshAdminCsrf,
   verifyAdminPassword,
 } from "../lib/adminSecurity.js";
-import { sendAdminPasswordReset } from "../lib/mailer.js";
-import { AdminCredential } from "../models/AdminCredential.js";
-import { AdminPasswordReset } from "../models/AdminPasswordReset.js";
 import { AdminSession } from "../models/AdminSession.js";
 import { Consultation, serviceNames } from "../models/Consultation.js";
 
@@ -36,38 +32,10 @@ const loginLimiter = rateLimit({
   message: { message: "Too many login attempts. Please wait before trying again." },
 });
 
-const passwordResetLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 5,
-  standardHeaders: "draft-8",
-  legacyHeaders: false,
-  message: { message: "Too many password reset attempts. Please wait before trying again." },
-});
-
 const loginSchema = z.object({
   email: z.string().trim().email().max(160).transform((value) => value.toLowerCase()),
   password: z.string().min(1).max(256),
 });
-
-const forgotPasswordSchema = z.object({
-  email: z.string().trim().email().max(160).transform((value) => value.toLowerCase()),
-});
-
-const resetPasswordSchema = z
-  .object({
-    token: z.string().min(32).max(256),
-    password: z
-      .string()
-      .min(12, "Password must be at least 12 characters.")
-      .max(128)
-      .regex(/[A-Za-z]/, "Password must include a letter.")
-      .regex(/\d/, "Password must include a number."),
-    confirmPassword: z.string().max(128),
-  })
-  .refine((value) => value.password === value.confirmPassword, {
-    message: "Passwords do not match.",
-    path: ["confirmPassword"],
-  });
 
 const querySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -93,108 +61,32 @@ function escapeRegex(value) {
 router.post("/login", loginLimiter, requireAllowedAdminOrigin, async (req, res, next) => {
   try {
     const parsed = loginSchema.safeParse(req.body);
-    const credential = await AdminCredential.findOne({ key: "primary" }).lean();
-    const passwordHash = credential?.passwordHash || config.adminPasswordHash;
     if (
       !parsed.success ||
       parsed.data.email !== config.adminEmail ||
-      !verifyAdminPassword(parsed.data.password, passwordHash)
+      !verifyAdminPassword(parsed.data.password)
     ) {
       return res.status(401).json({ message: "Invalid admin credentials." });
     }
 
-    await AdminSession.deleteMany({ expiresAt: mongoose.trusted({ $lte: new Date() }) });
+    await AdminSession.deleteMany({
+      expiresAt: mongoose.trusted({ $lte: new Date() }),
+    });
     await clearAdminSession(req, res);
-    await createAdminSession(req, res);
-    return res.json({ authenticated: true, email: config.adminEmail });
+    const { sessionToken, csrfToken } = await createAdminSession(req, res);
+    return res.json({ authenticated: true, email: config.adminEmail, sessionToken, csrfToken });
   } catch (error) {
     return next(error);
   }
 });
 
-router.post(
-  "/forgot-password",
-  passwordResetLimiter,
-  requireAllowedAdminOrigin,
-  async (req, res, next) => {
-    try {
-      const parsed = forgotPasswordSchema.safeParse(req.body);
-      const response = {
-        message: "If that admin email is valid, a password reset link has been sent.",
-      };
-      if (!parsed.success || parsed.data.email !== config.adminEmail) {
-        return res.json(response);
-      }
-
-      const token = crypto.randomBytes(32).toString("base64url");
-      const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
-      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-      await AdminPasswordReset.deleteMany({ email: config.adminEmail });
-      await AdminPasswordReset.create({ email: config.adminEmail, tokenHash, expiresAt });
-
-      const resetUrl = new URL(config.adminResetUrl);
-      resetUrl.searchParams.set("resetToken", token);
-      try {
-        await sendAdminPasswordReset(config.adminEmail, resetUrl.toString());
-      } catch (mailError) {
-        await AdminPasswordReset.deleteOne({ tokenHash });
-        throw mailError;
-      }
-
-      return res.json({
-        ...response,
-        ...(config.enableDevAdminReset ? { devResetToken: token } : {}),
-      });
-    } catch (error) {
-      return next(error);
-    }
-  },
-);
-
-router.post(
-  "/reset-password",
-  passwordResetLimiter,
-  requireAllowedAdminOrigin,
-  async (req, res, next) => {
-    try {
-      const parsed = resetPasswordSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({
-          message: parsed.error.issues[0]?.message || "Invalid password reset request.",
-        });
-      }
-
-      const tokenHash = crypto.createHash("sha256").update(parsed.data.token).digest("hex");
-      const reset = await AdminPasswordReset.findOne({
-        tokenHash,
-        expiresAt: mongoose.trusted({ $gt: new Date() }),
-      });
-      if (!reset) {
-        return res.status(400).json({ message: "Reset link is invalid or has expired." });
-      }
-
-      await AdminCredential.findOneAndUpdate(
-        { key: "primary" },
-        {
-          key: "primary",
-          passwordHash: hashAdminPassword(parsed.data.password),
-          passwordChangedAt: new Date(),
-        },
-        { upsert: true, new: true, setDefaultsOnInsert: true },
-      );
-      await Promise.all([
-        AdminPasswordReset.deleteMany({ email: config.adminEmail }),
-        AdminSession.deleteMany({}),
-      ]);
-      return res.json({ success: true, message: "Password reset successfully. Please sign in." });
-    } catch (error) {
-      return next(error);
-    }
-  },
-);
-
-router.get("/me", requireAdmin, (_req, res) => {
-  res.json({ authenticated: true, email: config.adminEmail });
+router.get("/me", requireAdmin, async (req, res, next) => {
+  try {
+    const csrfToken = await refreshAdminCsrf(req, res);
+    return res.json({ authenticated: true, email: config.adminEmail, csrfToken });
+  } catch (error) {
+    return next(error);
+  }
 });
 
 router.post(
@@ -227,7 +119,9 @@ router.get("/stats", requireAdmin, async (_req, res, next) => {
       },
     ]);
     const recent = await Consultation.countDocuments({
-      createdAt: mongoose.trusted({ $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }),
+      createdAt: mongoose.trusted({
+        $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+      }),
     });
     return res.json({
       total: totals?.total || 0,

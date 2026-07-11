@@ -47,7 +47,7 @@ app.use(
       return callback(new Error("Origin not allowed"));
     },
     methods: ["GET", "POST", "PATCH"],
-    allowedHeaders: ["Content-Type", "X-CSRF-Token"],
+    allowedHeaders: ["Content-Type", "X-CSRF-Token", "Authorization"],
     credentials: true,
     maxAge: 86400,
   }),
