@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -12,12 +11,14 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
-import ConsultationModal from "./components/ConsultationModal";
-import FaqSection from "./components/FaqSection";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Seo from "./components/Seo";
-import ServicesShowcase from "./components/ServicesShowcase";
 import { routeMeta } from "./seo";
+
+const ServicesShowcase = lazy(() => import("./components/ServicesShowcase"));
+const FaqSection = lazy(() => import("./components/FaqSection"));
+const ConsultationModal = lazy(() => import("./components/ConsultationModal"));
+const PremiumSections = lazy(() => import("./components/PremiumSections"));
 
 const navItems = [
   { label: "Services", target: "services", path: "/services" },
@@ -26,17 +27,17 @@ const navItems = [
   { label: "Contact", target: "contact", path: "/contact" },
 ];
 
-const reveal = {
-  hidden: { opacity: 0, y: 24, filter: "blur(8px)" },
-  visible: { opacity: 1, y: 0, filter: "blur(0px)" },
-};
-
 function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [consultationOpen, setConsultationOpen] = useState(false);
   const [selectedService, setSelectedService] = useState("");
   const [scrolled, setScrolled] = useState(false);
   const [currentPath, setCurrentPath] = useState(routeMeta[window.location.pathname] ? window.location.pathname : "/");
+  const [renderServices, setRenderServices] = useState(window.location.pathname === "/services");
+  const [renderFaqs, setRenderFaqs] = useState(window.location.pathname === "/faqs");
+  const servicesPlaceholderRef = useRef(null);
+  const faqsPlaceholderRef = useRef(null);
+  const currentYear = useMemo(() => new Date().getFullYear(), []);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 24);
@@ -45,9 +46,30 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (renderServices && renderFaqs) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          if (entry.target === servicesPlaceholderRef.current) setRenderServices(true);
+          if (entry.target === faqsPlaceholderRef.current) setRenderFaqs(true);
+        });
+      },
+      { rootMargin: "0px", threshold: 0.01 },
+    );
+
+    if (!renderServices && servicesPlaceholderRef.current) observer.observe(servicesPlaceholderRef.current);
+    if (!renderFaqs && faqsPlaceholderRef.current) observer.observe(faqsPlaceholderRef.current);
+    return () => observer.disconnect();
+  }, [renderServices, renderFaqs]);
+
+  useEffect(() => {
     const scrollToCurrentRoute = () => {
       const route = routeMeta[window.location.pathname] || routeMeta["/"];
       setCurrentPath(routeMeta[window.location.pathname] ? window.location.pathname : "/");
+      if (route.target === "services") setRenderServices(true);
+      if (route.target === "faqs") setRenderFaqs(true);
       const targetSelector = window.location.hash || `#${route.target}`;
       const target = document.querySelector(targetSelector);
       if (!target) return;
@@ -64,7 +86,9 @@ function App() {
     return () => window.removeEventListener("popstate", scrollToCurrentRoute);
   }, []);
 
-  const scrollToSection = (targetId, pathname = "/") => {
+  const scrollToSection = useCallback((targetId, pathname = "/") => {
+    if (targetId === "services") setRenderServices(true);
+    if (targetId === "faqs") setRenderFaqs(true);
     const target = document.getElementById(targetId);
     if (!target) return;
 
@@ -74,12 +98,15 @@ function App() {
     setCurrentPath(routeMeta[pathname] ? pathname : "/");
     target.scrollIntoView({ behavior: "smooth", block: "start" });
     setMenuOpen(false);
-  };
+  }, []);
 
-  const openConsultation = (service = "") => {
+  const openConsultation = useCallback((service = "") => {
+    import("./components/ConsultationModal");
     setSelectedService(service);
     setConsultationOpen(true);
-  };
+  }, []);
+
+  const closeConsultation = useCallback(() => setConsultationOpen(false), []);
 
   return (
     <div className="site-shell">
@@ -109,45 +136,55 @@ function App() {
         <section className="hero" id="home">
           <img className="hero-watermark" src="/kini-logo.jpeg" alt="" aria-hidden="true" fetchPriority="high" decoding="async" />
           <div className="hero-glow" aria-hidden="true" />
-          <motion.div className="hero-content" initial="hidden" animate="visible" transition={{ staggerChildren: 0.12 }}>
-            <motion.p variants={reveal} transition={{ duration: 0.7 }} className="hero-eyebrow">
+          <div className="hero-content hero-reveal">
+            <p className="hero-eyebrow">
               KINi Outsourcing Services <span /> Tax Consultant
-            </motion.p>
-            <motion.h1 variants={reveal} transition={{ duration: 0.8 }}>
+            </p>
+            <h1>
               <span>Clarity for </span><span>every</span> <em>financial move.</em>
-            </motion.h1>
-            <motion.p variants={reveal} transition={{ duration: 0.8 }} className="hero-copy">
+            </h1>
+            <p className="hero-copy">
               Reliable accounting, tax, GST, TDS, incorporation, licensing, and compliance support built around accuracy, confidentiality, and timely delivery.
-            </motion.p>
-            <motion.div variants={reveal} transition={{ duration: 0.8 }} className="hero-actions">
+            </p>
+            <div className="hero-actions">
               <button className="primary-button" type="button" onClick={() => openConsultation()}>
                 Request consultation <ArrowUpRight size={18} />
               </button>
               <a className="secondary-button" href="https://wa.me/919920515701?text=Hello%20Kini%20Outsourcing%20Services%2C%20I%20would%20like%20to%20discuss%20a%20service." target="_blank" rel="noreferrer">
                 <MessageCircle size={18} /> WhatsApp
               </a>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
 
-          <motion.div className="hero-proof" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8, duration: 0.8 }}>
+          <div className="hero-proof hero-proof-reveal">
             <div><ShieldCheck size={18} /><span>Confidential</span></div>
             <div><CheckCircle2 size={18} /><span>Accurate</span></div>
             <div><Clock3 size={18} /><span>Deadline-aware</span></div>
-          </motion.div>
+          </div>
 
           <button className="hero-scroll" type="button" onClick={() => scrollToSection("services", "/services")} aria-label="Scroll to services">
             Services <ArrowDownRight size={17} />
           </button>
         </section>
 
-        <ServicesShowcase onConsult={openConsultation} />
+        {renderServices ? (
+          <Suspense fallback={<section className="services-section services-loading" id="services" aria-hidden="true" />}>
+            <ServicesShowcase onConsult={openConsultation} />
+          </Suspense>
+        ) : (
+          <section className="services-section services-loading" id="services" ref={servicesPlaceholderRef} aria-hidden="true" />
+        )}
+
+        <Suspense fallback={null}>
+          <PremiumSections />
+        </Suspense>
 
         <section className="about-section" id="about">
-          <motion.div className="about-image-wrap" initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }}>
+          <div className="about-image-wrap scroll-reveal">
             <img src="/hariom-pandey.jpeg" alt="Hariom M. Pandey, Founder and Tax Consultant at KINi Outsourcing Services" loading="lazy" decoding="async" />
             <div className="about-image-label"><span>Founder profile</span> Direct, accountable support</div>
-          </motion.div>
-          <motion.div className="about-copy" initial={{ opacity: 0, y: 28 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ delay: 0.12 }}>
+          </div>
+          <div className="about-copy scroll-reveal reveal-delay">
             <p className="section-kicker">About the consultant</p>
             <h2>Hariom M. Pandey</h2>
             <p className="about-role">Founder & Tax Consultant</p>
@@ -163,23 +200,16 @@ function App() {
             <button type="button" className="text-action" onClick={() => openConsultation()}>
               Consult with Hariom <ArrowUpRight size={15} aria-hidden="true" />
             </button>
-          </motion.div>
-        </section>
-
-        <section className="security-section">
-          <div className="section-intro">
-            <p className="section-kicker">Responsible by design</p>
-            <h2>A secure way to start a conversation.</h2>
-            <p>No account creation. No password to remember. Consultation requests are protected before they reach us.</p>
-          </div>
-          <div className="security-grid">
-            <div><span>01</span><ShieldCheck size={26} /><h3>Human verification</h3><p>CAPTCHA validation helps block automated and abusive submissions.</p></div>
-            <div><span>02</span><Mail size={26} /><h3>Direct notification</h3><p>Verified requests are sent to the KINi team for follow-up without asking visitors to create an account.</p></div>
-            <div><span>03</span><CheckCircle2 size={26} /><h3>Limited data</h3><p>Only information needed to understand and respond to the request is collected.</p></div>
           </div>
         </section>
 
-        <FaqSection />
+        {renderFaqs ? (
+          <Suspense fallback={<section className="faq-section faq-loading" id="faqs" aria-hidden="true" />}>
+            <FaqSection />
+          </Suspense>
+        ) : (
+          <section className="faq-section faq-loading" id="faqs" ref={faqsPlaceholderRef} aria-hidden="true" />
+        )}
 
         <section className="contact-section" id="contact">
           <div>
@@ -201,14 +231,18 @@ function App() {
           <p>KINi OUTSOURCING SERVICES<br /><span>Tax Consultant</span></p>
         </div>
         <p>Your Trusted Partner for Financial Clarity</p>
-        <p>(c) {new Date().getFullYear()} Kini Outsourcing Services<br /><span className="developer-credit">Developed and Design by Kushal Shukla</span></p>
+        <p>(c) {currentYear} Kini Outsourcing Services<br /><span className="developer-credit">Developed and Design by Kushal Shukla</span></p>
       </footer>
 
-      <ConsultationModal
-        isOpen={consultationOpen}
-        onClose={() => setConsultationOpen(false)}
-        initialService={selectedService}
-      />
+      {consultationOpen && (
+        <Suspense fallback={null}>
+          <ConsultationModal
+            isOpen={consultationOpen}
+            onClose={closeConsultation}
+            initialService={selectedService}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

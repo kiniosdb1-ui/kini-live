@@ -12,5 +12,9 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
+    target: "es2022",
+    modulePreload: {
+      polyfill: false,
+    },
   },
 });
